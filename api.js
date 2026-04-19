@@ -1,5 +1,5 @@
 const path = require('path')
-const Products = require('./products')
+const Product = require('./models/Product')
 const autoCatch = require('./lib/auto-catch')
 
 /**
@@ -18,15 +18,14 @@ function handleRoot(req, res) {
  */
 async function listProducts(req, res) {
   // Extract the limit and offset query parameters
-  const { offset = 0, limit = 25, tag } = req.query
-  // Pass the limit and offset to the Products service
-  res.json(await Products.list({
-    offset: Number(offset),
-    limit: Number(limit),
-    tag
-  }))
-}
+  const { offset = 0, limit = 25 } = req.query
 
+  const products = await Product.find()
+    .skip(Number(offset))
+    .limit(Number(limit))
+
+  res.json(products)
+}
 
 /**
  * Get a single product
@@ -36,7 +35,7 @@ async function listProducts(req, res) {
 async function getProduct(req, res, next) {
   const { id } = req.params
 
-  const product = await Products.get(id)
+  const product = await Product.findById(id)
   if (!product) {
     return next()
   }
@@ -50,8 +49,8 @@ async function getProduct(req, res, next) {
  * @param {object} res 
  */
 async function createProduct(req, res) {
-  console.log('request body:', req.body)
-  res.json(req.body)
+  const product = await Product.create(req.body)
+  res.status(201).json(product)
 }
 
 /**
@@ -61,8 +60,14 @@ async function createProduct(req, res) {
  * @param {function} next
  */
 async function editProduct(req, res, next) {
-  console.log(req.body)
-  res.json(req.body)
+  const { id } = req.params
+
+  const product = await Product.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
+  if (!product) {
+    return next()
+  }
+
+  res.json(product)
 }
 
 /**
@@ -72,6 +77,13 @@ async function editProduct(req, res, next) {
  * @param {*} next 
  */
 async function deleteProduct(req, res, next) {
+  const { id } = req.params
+
+  const product = await Product.findByIdAndDelete(id)
+  if (!product) {
+    return next()
+  }
+
   res.json({ success: true })
 }
 
